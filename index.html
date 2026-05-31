@@ -102,6 +102,15 @@
                 display.value = '错误';
             }
         }
+
+        // 防止浏览器返回手势导致页面卡死
+        // 将虚拟历史条目推送到堆栈，防止返回导航关闭应用
+        window.addEventListener('load', () => {
+            history.pushState(null, null, location.href);
+            window.addEventListener('popstate', () => {
+                history.pushState(null, null, location.href);
+            });
+        });
     </script>
     <script>
         if ('serviceWorker' in navigator) {
