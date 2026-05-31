@@ -3,26 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的工具箱 - 计算器</title>
+    <title>我的工具箱 - 计算器 & 天气</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#ffffff">
     <style>
         /* 这里是 CSS：负责把网页打扮得好看一点 */
+        * {
+            box-sizing: border-box;
+        }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f4f9;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
+            padding: 20px;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            max-width: 600px;
+            width: 100%;
         }
         .calculator {
             background: white;
             padding: 20px;
             border-radius: 12px;
             box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-            width: 260px;
+        }
+        .weather-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            min-height: 280px;
+        }
+        .weather-city {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .weather-temp {
+            font-size: 48px;
+            font-weight: bold;
+            color: #667eea;
+            margin: 10px 0;
+        }
+        .weather-desc {
+            font-size: 16px;
+            color: #666;
+            margin: 5px 0;
+        }
+        .weather-details {
+            font-size: 13px;
+            color: #888;
+            margin-top: 10px;
+            line-height: 1.6;
+        }
+        .weather-loading {
+            color: #999;
+            font-size: 14px;
+        }
+        .weather-error {
+            color: #e74c3c;
+            font-size: 14px;
         }
         #display {
             width: 100%;
@@ -32,7 +85,6 @@
             margin-bottom: 15px;
             border: 1px solid #ddd;
             border-radius: 6px;
-            box-sizing: border-box;
             padding: 10px;
         }
         .buttons {
@@ -54,32 +106,52 @@
         .operator:hover { background-color: #e68a00; }
         .clear { background-color: #f44336; color: white; }
         .clear:hover { background-color: #da190b; }
+
+        /* 响应式设计：小屏幕改为单列 */
+        @media (max-width: 600px) {
+            .container {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            body {
+                padding: 10px;
+            }
+        }
     </style>
 </head>
 <body>
 
-    <div class="calculator">
-        <input type="text" id="display" disabled>
-        <div class="buttons">
-            <button onclick="appendValue('7')">7</button>
-            <button onclick="appendValue('8')">8</button>
-            <button onclick="appendValue('9')">9</button>
-            <button class="operator" onclick="appendValue('/')">/</button>
-            
-            <button onclick="appendValue('4')">4</button>
-            <button onclick="appendValue('5')">5</button>
-            <button onclick="appendValue('6')">6</button>
-            <button class="operator" onclick="appendValue('*')">*</button>
-            
-            <button onclick="appendValue('1')">1</button>
-            <button onclick="appendValue('2')">2</button>
-            <button onclick="appendValue('3')">3</button>
-            <button class="operator" onclick="appendValue('-')">-</button>
-            
-            <button class="clear" onclick="clearDisplay()">C</button>
-            <button onclick="appendValue('0')">0</button>
-            <button class="operator" onclick="calculate()">=</button>
-            <button class="operator" onclick="appendValue('+')">+</button>
+    <div class="container">
+        <div class="calculator">
+            <input type="text" id="display" disabled>
+            <div class="buttons">
+                <button onclick="appendValue('7')">7</button>
+                <button onclick="appendValue('8')">8</button>
+                <button onclick="appendValue('9')">9</button>
+                <button class="operator" onclick="appendValue('/')">/</button>
+                
+                <button onclick="appendValue('4')">4</button>
+                <button onclick="appendValue('5')">5</button>
+                <button onclick="appendValue('6')">6</button>
+                <button class="operator" onclick="appendValue('*')">*</button>
+                
+                <button onclick="appendValue('1')">1</button>
+                <button onclick="appendValue('2')">2</button>
+                <button onclick="appendValue('3')">3</button>
+                <button class="operator" onclick="appendValue('-')">-</button>
+                
+                <button class="clear" onclick="clearDisplay()">C</button>
+                <button onclick="appendValue('0')">0</button>
+                <button class="operator" onclick="calculate()">=</button>
+                <button class="operator" onclick="appendValue('+')">+</button>
+            </div>
+        </div>
+
+        <div class="weather-card">
+            <div class="weather-city">上海天气</div>
+            <div id="weather-content">
+                <div class="weather-loading">加载中...</div>
+            </div>
         </div>
     </div>
 
@@ -96,7 +168,6 @@
 
         function calculate() {
             try {
-                // eval 是一个执行数学字符串的内置函数
                 display.value = eval(display.value);
             } catch (error) {
                 display.value = '错误';
@@ -104,14 +175,88 @@
         }
 
         // 防止浏览器返回手势导致页面卡死
-        // 将虚拟历史条目推送到堆栈，防止返回导航关闭应用
         window.addEventListener('load', () => {
             history.pushState(null, null, location.href);
             window.addEventListener('popstate', () => {
                 history.pushState(null, null, location.href);
             });
         });
+
+        // 获取上海天气数据（使用 Open-Meteo 免费API）
+        async function fetchShanghai Weather() {
+            try {
+                // 上海的坐标：北纬 31.23, 东经 121.47
+                const response = await fetch(
+                    'https://api.open-meteo.com/v1/forecast?latitude=31.23&longitude=121.47&current=temperature_2m,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Asia/Shanghai'
+                );
+                const data = await response.json();
+                displayWeather(data);
+            } catch (error) {
+                console.error('获取天气失败:', error);
+                document.getElementById('weather-content').innerHTML = 
+                    '<div class="weather-error">无法获取天气数据</div>';
+            }
+        }
+
+        // 解析天气代码
+        function getWeatherDescription(code) {
+            const weatherCodes = {
+                0: '晴',
+                1: '主要晴朗',
+                2: '部分多云',
+                3: '阴',
+                45: '雾',
+                48: '沉淀雾',
+                51: '小毛毛雨',
+                53: '中等毛毛雨',
+                55: '浓毛毛雨',
+                61: '小雨',
+                63: '中雨',
+                65: '大雨',
+                71: '小雪',
+                73: '中雪',
+                75: '大雪',
+                80: '小阵雨',
+                81: '中阵雨',
+                82: '大阵雨',
+                95: '雷暴'
+            };
+            return weatherCodes[code] || '未知';
+        }
+
+        // 显示天气信息
+        function displayWeather(data) {
+            const current = data.current;
+            const daily = data.daily;
+            
+            const temp = Math.round(current.temperature_2m);
+            const desc = getWeatherDescription(current.weather_code);
+            const wind = Math.round(current.wind_speed_10m);
+            const maxTemp = Math.round(daily.temperature_2m_max[0]);
+            const minTemp = Math.round(daily.temperature_2m_min[0]);
+
+            const html = `
+                <div class="weather-temp">${temp}°C</div>
+                <div class="weather-desc">${desc}</div>
+                <div class="weather-details">
+                    <div>今日最高: ${maxTemp}°C / 最低: ${minTemp}°C</div>
+                    <div>风速: ${wind} km/h</div>
+                    <div style="font-size: 12px; margin-top: 8px; color: #aaa;">
+                        更新时间: ${new Date().toLocaleTimeString('zh-CN')}
+                    </div>
+                </div>
+            `;
+            document.getElementById('weather-content').innerHTML = html;
+        }
+
+        // 页面加载时获取天气
+        window.addEventListener('load', () => {
+            fetchShanghaiWeather();
+            // 每30分钟更新一次天气
+            setInterval(fetchShanghaiWeather, 30 * 60 * 1000);
+        });
     </script>
+
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
